@@ -72,6 +72,16 @@ function refresh() {
   }
 }
 
+// The bot only pushes newCandle once per candle, but the in-progress candle changes in between.
+const LIVE_REFRESH_MS = 15000;
+const pageVisibility = useDocumentVisibility();
+useIntervalFn(() => {
+  if (props.historicView || !botStore.globalAutoRefresh || pageVisibility.value !== 'visible') {
+    return;
+  }
+  refresh();
+}, LIVE_REFRESH_MS);
+
 function refreshIfNecessary(newValue: string[], oldValue: string[] | undefined) {
   for (const pair of newValue) {
     if (oldValue?.includes(pair)) {
