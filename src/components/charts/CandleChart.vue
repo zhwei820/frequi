@@ -122,6 +122,15 @@ const lastClose = computed(() => {
   return lastRow[colClose] as number;
 });
 
+const lastUpdated = ref<number | null>(null);
+watch(
+  () => props.dataset,
+  () => {
+    lastUpdated.value = Date.now();
+  },
+  { immediate: true },
+);
+
 const diffCols = computed(() => {
   return getDiffColumnsFromPlotConfig(props.plotConfig);
 });
@@ -754,9 +763,12 @@ watch(
       v-if="hasData && lastClose !== null"
       class="absolute top-1 z-10 pointer-events-none text-sm font-semibold tabular-nums"
       :style="{ left: MARGINLEFT }"
-      title="Close of the last candle"
+      title="Close of the last candle / time the chart data was last received"
     >
       {{ pair }} {{ formatPrice(lastClose) }}
+      <span v-if="lastUpdated" class="ms-2 text-xs font-normal opacity-70">
+        {{ timestampms(lastUpdated) }}
+      </span>
     </div>
     <ECharts v-if="hasData" ref="candleChart" :theme="theme" autoresize manual-update />
   </div>
