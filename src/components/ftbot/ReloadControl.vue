@@ -8,6 +8,35 @@ const autoRefreshLoc = computed({
     botStore.setGlobalAutoRefresh(newValue);
   },
 });
+
+// Refreshes usually finish in well under a second; keep spinning for at least one
+// full rotation (animate-spin period) so the feedback is visible.
+const MIN_SPIN_MS = 1000;
+const spinning = ref(false);
+let spinStart = 0;
+let stopTimer: number | undefined;
+
+watch(
+  () => botStore.isRefreshing,
+  (active) => {
+    if (active) {
+      window.clearTimeout(stopTimer);
+      if (!spinning.value) {
+        spinning.value = true;
+        spinStart = Date.now();
+      }
+      return;
+    }
+    const elapsed = Date.now() - spinStart;
+    const remaining = MIN_SPIN_MS - (elapsed % MIN_SPIN_MS);
+    stopTimer = window.setTimeout(() => {
+      spinning.value = false;
+    }, remaining);
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => window.clearTimeout(stopTimer));
 </script>
 
 <template>
@@ -19,6 +48,7 @@ const autoRefreshLoc = computed({
       variant="outline"
       title="Auto Refresh all bots now"
       icon="mdi:refresh"
+      :ui="{ leadingIcon: spinning ? 'animate-spin' : '' }"
       @click="botStore.allRefreshFull"
     />
   </div>

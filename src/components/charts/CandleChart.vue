@@ -115,6 +115,13 @@ const chartTitle = computed(() => {
   return `${strategy.value} - ${pair.value} - ${timeframe.value}`;
 });
 
+const lastClose = computed(() => {
+  const colClose = props.dataset?.columns.indexOf('close') ?? -1;
+  const lastRow = props.dataset?.data.at(-1);
+  if (colClose < 0 || !lastRow) return null;
+  return lastRow[colClose] as number;
+});
+
 const diffCols = computed(() => {
   return getDiffColumnsFromPlotConfig(props.plotConfig);
 });
@@ -742,7 +749,15 @@ watch(
 </script>
 
 <template>
-  <div class="h-full w-full">
+  <div class="h-full w-full relative">
+    <div
+      v-if="hasData && lastClose !== null"
+      class="absolute top-1 z-10 pointer-events-none text-sm font-semibold tabular-nums"
+      :style="{ left: MARGINLEFT }"
+      title="Close of the last candle"
+    >
+      {{ pair }} {{ formatPrice(lastClose) }}
+    </div>
     <ECharts v-if="hasData" ref="candleChart" :theme="theme" autoresize manual-update />
   </div>
 </template>

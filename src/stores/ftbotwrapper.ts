@@ -31,6 +31,7 @@ interface BotStoreSetup {
   availableBots: Ref<BotDescriptors>;
   globalAutoRefresh: Ref<boolean>;
   refreshing: Ref<boolean>;
+  isRefreshing: ComputedRef<boolean>;
   refreshInterval: Ref<number | null>;
   refreshIntervalSlow: Ref<number | null>;
   botStores: Ref<SubStores>;
@@ -87,6 +88,18 @@ export const useBotStore = defineStore('ftbot-wrapper', (): BotStoreSetup => {
   const availableBots = ref<BotDescriptors>({});
   const globalAutoRefresh = ref<boolean>(true);
   const refreshing = ref<boolean>(false);
+  const activeRefreshes = ref(0);
+  const isRefreshing = computed(() => refreshing.value || activeRefreshes.value > 0);
+
+  async function trackRefresh(updates: Promise<unknown>[]) {
+    if (updates.length === 0) return;
+    activeRefreshes.value += 1;
+    try {
+      await Promise.all(updates);
+    } finally {
+      activeRefreshes.value -= 1;
+    }
+  }
   const refreshInterval = ref<number | null>(null);
   const refreshIntervalSlow = ref<number | null>(null);
 
@@ -367,7 +380,7 @@ export const useBotStore = defineStore('ftbot-wrapper', (): BotStoreSetup => {
         updates.push(store.refreshFrequent());
       }
     });
-    await Promise.all(updates);
+    await trackRefresh(updates);
     return Promise.resolve();
   }
 
@@ -378,7 +391,7 @@ export const useBotStore = defineStore('ftbot-wrapper', (): BotStoreSetup => {
         updates.push(store.refreshSlow(forceUpdate));
       }
     });
-    await Promise.all(updates);
+    await trackRefresh(updates);
   }
 
   async function pingAll() {
@@ -524,6 +537,7 @@ export const useBotStore = defineStore('ftbot-wrapper', (): BotStoreSetup => {
     availableBots,
     globalAutoRefresh,
     refreshing,
+    isRefreshing,
     refreshInterval,
     refreshIntervalSlow,
     botStores,
